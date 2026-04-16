@@ -1,0 +1,128 @@
+---
+name: lark-messages
+description: >
+  Read and search Lark/Feishu (飞书) group messages and summarize them.
+  Use when the user asks about group messages, chat history, what happened
+  in a group, important messages, unread messages, or anything about 飞书
+  群消息. Trigger phrases: "看看群里有什么消息", "群里今天聊了什么",
+  "有什么重要消息", "有没有人找我", "群里有什么遗漏的",
+  "帮我看看飞书消息", "消息摘要", "群消息".
+---
+
+# Lark Messages — Read & Summarize
+
+Read Feishu group messages via `lark-cli` and summarize them with AI.
+
+**CLI**: `lark-cli` (find it with `which lark-cli` or use the full path)
+
+## How It Works
+
+### Step 1: Find the group
+
+```bash
+lark-cli im +chat-search --query "群名关键词"
+```
+
+Returns `chat_id` — save it for next step.
+
+If unsure which group, ask the user. Common groups they may ask about:
+- Work groups, project groups, announcement groups, etc.
+
+### Step 2: Read messages
+
+```bash
+# Recent messages (default: ~20, returns JSON array)
+lark-cli im +chat-messages-list --chat-id <chat_id>
+
+# Use --format pretty for a readable table view
+lark-cli im +chat-messages-list --chat-id <chat_id> --format pretty
+
+# Control page size
+lark-cli im +chat-messages-list --chat-id <chat_id> --page-size 50
+
+# For pagination, use --page-token from previous response's page_token field
+lark-cli im +chat-messages-list --chat-id <chat_id> --page-token <token>
+
+# Check all flags
+lark-cli im +chat-messages-list --help
+```
+
+**Message format notes** (verified by testing):
+- Each message has `content` (text), `msg_type`, `create_time`
+- **Sender structure**: `sender` contains `{id, id_type, sender_type, tenant_key}` — there is NO `sender.name` field. You cannot get sender names from this API alone. Use `--format pretty` which shows a human-readable table, or note that the sender identity is unavailable.
+- Messages are returned in **reverse chronological order** — reverse them for summaries
+- `has_more: true` means there are more pages — use `--page-token` to fetch the next page
+- **There is NO `--page-all` flag** on `+chat-messages-list`. You must paginate manually with `--page-token`.
+- `msg_type: "system"` messages (join/invite events) should be **filtered out**
+
+### Step 3: Summarize with AI
+
+This is where Cola adds value. Don't dump raw messages — summarize:
+
+**Pre-processing before summarization:**
+1. Filter out `system` type messages (group join/leave/invite)
+2. Reverse the message array to chronological order (oldest first)
+3. Sender names are not available in raw JSON — use `--format pretty` output for a readable summary, or note messages by time only
+
+**Summarization categories:**
+1. **Key discussions**: What topics were discussed?
+2. **Action items**: Was anything assigned or decided?
+3. **Questions for user**: Did anyone @mention or ask the user something?
+4. **Problems reported**: Any bugs, issues, or complaints?
+
+Format the summary as a brief digest the user can scan in 30 seconds.
+If the initial fetch had `has_more: true`, mention "以上是最近 N 条消息的摘要，群里还有更早的消息". Use `--page-token` to fetch more if needed.
+
+### Step 4 (optional): Search specific messages
+
+```bash
+# Search by keyword across all chats
+lark-cli im +messages-search --query "关键词"
+
+# Check --help for filtering by chat, sender, time range
+lark-cli im +messages-search --help
+```
+
+## Responding to messages
+
+Only send messages when the user explicitly asks. Always draft and confirm first.
+
+```bash
+# Send to group
+lark-cli im +messages-send --chat-id <chat_id> --text "content"
+
+# Reply to a specific message
+lark-cli im +messages-reply --message-id <msg_id> --text "content"
+```
+
+When the user says something like "不重要的帮我回了" or "帮我回一下":
+1. Show the draft reply
+2. Wait for user confirmation
+3. Then send
+
+## Important
+
+- Run `--help` on any subcommand before guessing flags
+- Messages may contain `[Image]`, `[Sticker]`, `system` events — skip these in summaries
+- Use `--format pretty` for readable output
+- The user's Feishu name is 牛浩冉 — look for @mentions of this name
+
+## IMPORTANT: Always Include Source Links
+
+After presenting a message summary, **always** include the group chat link so the user can jump into Feishu and see the full context:
+
+```
+https://<domain>.feishu.cn/messenger/<chat_id>
+```
+
+If a specific message is important (e.g. someone @mentioned the user, an action item), also include the direct message link if `message_id` is available:
+```
+https://<domain>.feishu.cn/messenger/<chat_id>?msgId=<message_id>
+```
+
+**Example output format**:
+> **ColaOS 社区内测群 - 今日摘要**
+> 1. 讨论了新版本发布计划...
+> 2. @牛浩冉 被问到关于飞书集成的进展
+>
+> 打开群聊：https://xxx.feishu.cn/messenger/oc_xxx
