@@ -16,72 +16,72 @@ description: >
 
 # Lark Setup — Connect Cola to Feishu
 
-**Design goal**: zero friction. The user should never have to ask "how do I set up Feishu" — Cola detects the state automatically and drives the entire setup. The user only clicks in the browser.
+**Design goal**: FULLY AUTOMATIC. Do not ask the user to download or install anything manually. Cola detects what's missing and installs everything by itself. The user only clicks in the browser for Feishu authorization.
 
-## Cross-Platform: Windows + macOS/Linux
+## Cross-Platform Notes
 
-All commands in this skill MUST work on both platforms. Cola runs in PowerShell on Windows and bash/zsh on macOS/Linux. Follow these rules:
-
-**Detection commands** — use platform-agnostic approaches:
-- To check if a command exists: just run `lark-cli --version` — if it errors, it's not installed. Do NOT use `which` (doesn't exist in PowerShell).
-- To check Node.js: run `node --version` — if it errors, not installed.
-- `lark-cli` commands themselves are cross-platform and work the same on all OS.
-
-**PowerShell gotchas**:
-- `which` does not exist → use `Get-Command lark-cli` or just try running the command
-- `2>/dev/null` does not work → use `2>$null` or just let errors appear
-- `echo "xxx" | cmd` works the same way in PowerShell
-- `&&` works in PowerShell 7+ but not in older versions → run commands separately to be safe
-
-**When in doubt**: run commands one at a time instead of chaining. It's safer cross-platform.
+Cola runs in PowerShell on Windows and bash/zsh on macOS/Linux. All commands must work on both.
+- Do NOT use `which`, `2>/dev/null`, or `&&` chaining — not cross-platform safe
+- Run commands **one at a time**
+- `lark-cli` commands are cross-platform, no changes needed
 
 ## Behavior: Be Proactive
 
-When this skill is loaded, **immediately** run Step 0 to check the current state. If Feishu is not fully configured, **do not wait for the user to ask** — tell them what's available and start the setup right away:
+When this skill is loaded, **immediately** run Step 0. If Feishu is not fully configured, **do not wait for the user to ask** — tell them what's available and start setup right away:
 
 > 我检测到你安装了飞书集成技能包，可以帮你读群消息、管任务、查日程、搜文档、查表格。
 > 现在帮你连接飞书，只需要在浏览器里点两下就好。
 
-Then proceed directly to whichever step is needed.
+Then proceed directly. **Do not stop between steps.** The entire setup should feel like one continuous flow.
 
 ## Step 0: Diagnose Current State
 
-Run these commands **one at a time** (cross-platform safe):
+Run these one at a time:
 
 ```
 node --version
 ```
-If this fails → need Step 0.5 (install Node.js first)
+If fails → Step 0.5
 
 ```
 lark-cli --version
 ```
-If this fails → need Step 1
+If fails → Step 1
 
 ```
 lark-cli doctor --json
 ```
-Based on doctor output:
 - `config_file` fail → Step 2
 - `token_exists` fail or `token expired` → Step 3
 - All pass → "You're Ready"
 
-**Do not stop between steps.** Once you finish one step, immediately proceed to the next. The entire setup should feel like one continuous flow.
+## Step 0.5: Auto-Install Node.js
 
-## Step 0.5: Install Node.js (if missing)
+Do NOT ask the user to install Node.js. Install it automatically.
 
-If `node --version` fails, the user needs Node.js. Tell them:
+**Windows (PowerShell):**
+```
+winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements
+```
+If `winget` is not available (older Windows), fall back to direct download:
+```
+Invoke-WebRequest -Uri "https://nodejs.org/dist/v22.15.0/node-v22.15.0-x64.msi" -OutFile "$env:TEMP\node-install.msi"
+Start-Process msiexec -ArgumentList "/i","$env:TEMP\node-install.msi","/quiet","/norestart" -Wait
+```
 
-> 飞书技能需要 Node.js 运行环境。我帮你打开下载页面，安装后就能继续。
+**macOS:**
+```
+curl -fsSL https://nodejs.org/dist/v22.15.0/node-v22.15.0.pkg -o /tmp/node.pkg && sudo installer -pkg /tmp/node.pkg -target /
+```
 
-Then open the download page:
-- **Windows**: tell the user to go to https://nodejs.org and download the LTS installer (one-click install)
-- **macOS**: `brew install node` or download from https://nodejs.org
-
-After the user installs Node.js, verify:
+After install, verify:
 ```
 node --version
 ```
+
+Tell the user:
+> 正在安装运行环境，稍等一下...
+
 Then immediately proceed to Step 1.
 
 ## Step 1: Install lark-cli
@@ -90,59 +90,47 @@ Then immediately proceed to Step 1.
 npm install -g @larksuite/cli
 ```
 
-This works on both Windows (PowerShell) and macOS/Linux. After install, verify:
+Verify:
 ```
 lark-cli --version
 ```
+
 Then immediately proceed to Step 2.
 
 ## Step 2: Create App (Auto-detect completion)
-
-Use `--new` which opens a browser for app creation. Run it **in background** so Cola can continue talking to the user:
 
 ```
 lark-cli config init --new --brand feishu
 ```
 
-Tell the user:
+Run in background. Tell the user:
 > 我帮你打开了飞书应用创建页面，你在浏览器里点击确认就行。我会自动检测你是否完成。
 
-**Auto-detect**: While the background command is running, periodically check:
+**Auto-detect**: Periodically check:
 ```
 lark-cli doctor --json
 ```
-When `config_file` and `app_resolved` both show `pass`, the app is created. **Immediately** move to Step 3.
+When `config_file` and `app_resolved` both show `pass` → **immediately** move to Step 3.
 
 ## Step 3: Authorize + Permissions (Auto-detect completion)
-
-Use the **non-blocking device flow** so Cola can monitor progress:
 
 ```
 lark-cli auth login --no-wait --domain all --json
 ```
 
-This returns JSON with:
-- `verification_url` — the URL to show the user
-- `device_code` — for polling completion
-- `expires_in` — timeout in seconds (usually 600)
+Returns JSON with `verification_url` and `device_code`.
 
 Tell the user:
 > 请打开这个链接完成飞书授权：
 > [显示 verification_url]
 > 登录飞书账号并点击"授权"就好，我会自动检测授权结果。
 
-Then poll for completion in background:
+Poll for completion in background:
 ```
-lark-cli auth login --device-code "<device_code from above>"
+lark-cli auth login --device-code "<device_code>"
 ```
 
-When it completes successfully, authorization is done. **Immediately** proceed to Step 4.
-
-**Alternative**: If you prefer active polling instead of background blocking:
-```
-lark-cli doctor --json
-```
-When `token_exists` and `token_verified` both show `pass`, authorization is complete.
+When done → **immediately** proceed to Step 4.
 
 ## Step 4: Verify and Report
 
@@ -150,7 +138,7 @@ When `token_exists` and `token_verified` both show `pass`, authorization is comp
 lark-cli doctor --json
 ```
 
-If all checks pass, run a smoke test:
+Smoke test:
 ```
 lark-cli calendar +agenda --format pretty
 ```
@@ -170,15 +158,11 @@ lark-cli calendar +agenda --format pretty
 
 | 错误 | 解决 |
 |------|------|
-| `node` not found | Install Node.js from https://nodejs.org |
+| `node` not found | Auto-install: winget (Win) / curl+installer (Mac) |
+| `winget` not found | Fall back to MSI silent install |
+| `npm` not found | Node.js not in PATH — restart shell or use full path |
 | `lark-cli` not found | `npm install -g @larksuite/cli` |
 | `no config found` | `lark-cli config init --new --brand feishu` |
-| `token expired` | Run Step 3 again (non-blocking device flow) |
-| `missing_scope: xxx` | `lark-cli auth login --no-wait --scope "xxx" --json` → get URL → poll with `--device-code` |
+| `token expired` | Run Step 3 again |
+| `missing_scope: xxx` | `lark-cli auth login --no-wait --scope "xxx" --json` → poll |
 | `app not found` | `lark-cli config init --new --brand feishu` |
-
-For `missing_scope`, use the same non-blocking pattern:
-1. `lark-cli auth login --no-wait --scope "xxx" --json` → get verification_url
-2. Show URL to user
-3. `lark-cli auth login --device-code "<code>"` in background
-4. Auto-retry the original command when authorization completes
