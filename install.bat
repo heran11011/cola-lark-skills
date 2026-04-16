@@ -13,6 +13,13 @@ if not exist "%SOURCE_DIR%" (
     exit /b 1
 )
 
+if not exist "%USERPROFILE%\.cola" (
+    echo Warning: Cola is not installed. Please install Cola first: https://cola.dev
+    echo.
+    set /p "answer=Continue anyway? [y/N] "
+    if /i not "%answer%"=="y" exit /b 1
+)
+
 if not exist "%SKILLS_DIR%" mkdir "%SKILLS_DIR%"
 
 for %%s in (lark-setup lark-messages lark-tasks lark-calendar lark-docs lark-base) do (
@@ -23,7 +30,7 @@ for %%s in (lark-setup lark-messages lark-tasks lark-calendar lark-docs lark-bas
 )
 
 echo.
-echo Done! %SKILLS_DIR%
+echo Done! Skills installed to: %SKILLS_DIR%
 echo.
 echo Now tell Cola: "帮我连接飞书"
 pause

@@ -105,7 +105,7 @@ When the user says something like "不重要的帮我回了" or "帮我回一下
 - Run `--help` on any subcommand before guessing flags
 - Messages may contain `[Image]`, `[Sticker]`, `system` events — skip these in summaries
 - Use `--format pretty` for readable output
-- The user's Feishu name is 牛浩冉 — look for @mentions of this name
+- Look for @mentions of the current user in messages — if you don't know the user's Feishu name, check with `lark-cli auth me` or ask them
 
 ## IMPORTANT: Always Include Source Links
 
@@ -123,6 +123,6 @@ https://<domain>.feishu.cn/messenger/<chat_id>?msgId=<message_id>
 **Example output format**:
 > **ColaOS 社区内测群 - 今日摘要**
 > 1. 讨论了新版本发布计划...
-> 2. @牛浩冉 被问到关于飞书集成的进展
+> 2. @用户 被问到关于飞书集成的进展
 >
 > 打开群聊：https://xxx.feishu.cn/messenger/oc_xxx

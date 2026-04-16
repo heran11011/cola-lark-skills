@@ -18,11 +18,11 @@ View and manage Feishu calendar via `lark-cli`.
 # Today's events
 lark-cli calendar +agenda
 
-# Tomorrow — use --start and --end for single-day range
-lark-cli calendar +agenda --start "2026-04-16T00:00:00+08:00" --end "2026-04-16T23:59:59+08:00"
+# Tomorrow — use --start and --end for single-day range (replace <YYYY-MM-DD> with actual date)
+lark-cli calendar +agenda --start "<YYYY-MM-DD>T00:00:00+08:00" --end "<YYYY-MM-DD>T23:59:59+08:00"
 
-# Date range (e.g. next 7 days) — use --start and --end with ISO 8601
-lark-cli calendar +agenda --start "2026-04-15T00:00:00+08:00" --end "2026-04-22T00:00:00+08:00"
+# Date range (e.g. next 7 days) — calculate start and end dates
+lark-cli calendar +agenda --start "<today>T00:00:00+08:00" --end "<7 days later>T00:00:00+08:00"
 
 # Check all flags
 lark-cli calendar +agenda --help
@@ -36,8 +36,8 @@ Use `--format pretty` for human-readable output instead of raw JSON.
 
 ```bash
 lark-cli calendar +create --summary "会议标题" \
-  --start "2026-04-16T14:00:00+08:00" \
-  --end "2026-04-16T15:00:00+08:00"
+  --start "<YYYY-MM-DD>T14:00:00+08:00" \
+  --end "<YYYY-MM-DD>T15:00:00+08:00"
 
 # Check all flags for inviting attendees, etc.
 lark-cli calendar +create --help
