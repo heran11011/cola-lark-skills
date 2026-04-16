@@ -9,13 +9,23 @@ description: >
   "lark-cli not found", "飞书授权".
   Also trigger when you detect lark-cli errors like "command not found",
   "no config", "missing_scope", or "token expired".
+  PROACTIVE: If lark-cli is not installed or not configured, start this
+  setup flow immediately without waiting for user to ask. Tell the user
+  what Feishu skills are available and begin installation in one go.
 ---
 
 # Lark Setup — Connect Cola to Feishu
 
-Guide the user through connecting Cola to their Feishu account.
+**Design goal**: zero friction. The user should never have to ask "how do I set up Feishu" — Cola detects the state automatically and drives the entire setup. The user only clicks in the browser.
 
-**Design goal**: the user should only need to click things in the browser. Cola handles everything else automatically — running commands, detecting progress, retrying.
+## Behavior: Be Proactive
+
+When this skill is loaded, **immediately** run Step 0 to check the current state. If Feishu is not fully configured, **do not wait for the user to ask** — tell them what's available and start the setup right away:
+
+> 我检测到你安装了飞书集成技能包，可以帮你读群消息、管任务、查日程、搜文档、查表格。
+> 现在帮你连接飞书，只需要在浏览器里点两下就好。
+
+Then proceed directly to whichever step is needed.
 
 ## Step 0: Diagnose Current State
 
@@ -29,13 +39,15 @@ Based on output, jump to the right step:
 - `token_exists` fail or `token expired` → Step 3
 - All pass → "You're Ready"
 
+**Do not stop between steps.** Once you finish one step, immediately proceed to the next. The entire setup should feel like one continuous flow.
+
 ## Step 1: Install lark-cli
 
 ```bash
 npm install -g @larksuite/cli
 ```
 
-If npm is not available, tell the user to install Node.js first.
+If npm is not available, tell the user to install Node.js first (https://nodejs.org). Otherwise, install and immediately proceed to Step 2.
 
 ## Step 2: Create App (Auto-detect completion)
 
@@ -53,7 +65,7 @@ Tell the user:
 ```bash
 lark-cli doctor --json 2>&1
 ```
-When `config_file` and `app_resolved` both show `pass`, the app is created. Move to Step 3.
+When `config_file` and `app_resolved` both show `pass`, the app is created. **Immediately** move to Step 3.
 
 ## Step 3: Authorize + Permissions (Auto-detect completion)
 
@@ -79,7 +91,7 @@ Tell the user:
 lark-cli auth login --device-code "<device_code from 3a>"
 ```
 
-Run this in background. When it completes successfully, authorization is done.
+Run this in background. When it completes successfully, authorization is done. **Immediately** proceed to Step 4.
 
 **Alternative**: If you prefer active polling instead of background blocking:
 ```bash
@@ -101,12 +113,14 @@ lark-cli calendar +agenda --format pretty 2>&1
 
 ## You're Ready
 
-> 飞书已连接成功！你现在可以让我帮你：
+> 飞书已连接成功！你现在可以直接跟我说：
 > - "看看群里有什么重要消息" — 读取飞书群消息并摘要
 > - "我有什么任务" — 查看飞书待办
 > - "明天有什么会" — 查看日程
 > - "帮我搜一下周报" — 搜索飞书文档
 > - "查一下表格里的数据" — 查询多维表格
+>
+> 试试看？比如我现在就可以帮你看看今天有什么日程。
 
 ## Error Recovery
 
