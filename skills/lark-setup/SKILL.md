@@ -18,6 +18,23 @@ description: >
 
 **Design goal**: zero friction. The user should never have to ask "how do I set up Feishu" — Cola detects the state automatically and drives the entire setup. The user only clicks in the browser.
 
+## Cross-Platform: Windows + macOS/Linux
+
+All commands in this skill MUST work on both platforms. Cola runs in PowerShell on Windows and bash/zsh on macOS/Linux. Follow these rules:
+
+**Detection commands** — use platform-agnostic approaches:
+- To check if a command exists: just run `lark-cli --version` — if it errors, it's not installed. Do NOT use `which` (doesn't exist in PowerShell).
+- To check Node.js: run `node --version` — if it errors, not installed.
+- `lark-cli` commands themselves are cross-platform and work the same on all OS.
+
+**PowerShell gotchas**:
+- `which` does not exist → use `Get-Command lark-cli` or just try running the command
+- `2>/dev/null` does not work → use `2>$null` or just let errors appear
+- `echo "xxx" | cmd` works the same way in PowerShell
+- `&&` works in PowerShell 7+ but not in older versions → run commands separately to be safe
+
+**When in doubt**: run commands one at a time instead of chaining. It's safer cross-platform.
+
 ## Behavior: Be Proactive
 
 When this skill is loaded, **immediately** run Step 0 to check the current state. If Feishu is not fully configured, **do not wait for the user to ask** — tell them what's available and start the setup right away:
@@ -29,32 +46,61 @@ Then proceed directly to whichever step is needed.
 
 ## Step 0: Diagnose Current State
 
-```bash
-which lark-cli 2>/dev/null && lark-cli --version 2>&1 && lark-cli doctor --json 2>&1 || echo "LARK_CLI_NOT_FOUND"
-```
+Run these commands **one at a time** (cross-platform safe):
 
-Based on output, jump to the right step:
-- `LARK_CLI_NOT_FOUND` → Step 1
+```
+node --version
+```
+If this fails → need Step 0.5 (install Node.js first)
+
+```
+lark-cli --version
+```
+If this fails → need Step 1
+
+```
+lark-cli doctor --json
+```
+Based on doctor output:
 - `config_file` fail → Step 2
 - `token_exists` fail or `token expired` → Step 3
 - All pass → "You're Ready"
 
 **Do not stop between steps.** Once you finish one step, immediately proceed to the next. The entire setup should feel like one continuous flow.
 
+## Step 0.5: Install Node.js (if missing)
+
+If `node --version` fails, the user needs Node.js. Tell them:
+
+> 飞书技能需要 Node.js 运行环境。我帮你打开下载页面，安装后就能继续。
+
+Then open the download page:
+- **Windows**: tell the user to go to https://nodejs.org and download the LTS installer (one-click install)
+- **macOS**: `brew install node` or download from https://nodejs.org
+
+After the user installs Node.js, verify:
+```
+node --version
+```
+Then immediately proceed to Step 1.
+
 ## Step 1: Install lark-cli
 
-```bash
+```
 npm install -g @larksuite/cli
 ```
 
-If npm is not available, tell the user to install Node.js first (https://nodejs.org). Otherwise, install and immediately proceed to Step 2.
+This works on both Windows (PowerShell) and macOS/Linux. After install, verify:
+```
+lark-cli --version
+```
+Then immediately proceed to Step 2.
 
 ## Step 2: Create App (Auto-detect completion)
 
 Use `--new` which opens a browser for app creation. Run it **in background** so Cola can continue talking to the user:
 
-```bash
-# Run in background — it blocks until user completes browser flow
+```
 lark-cli config init --new --brand feishu
 ```
 
@@ -62,8 +108,8 @@ Tell the user:
 > 我帮你打开了飞书应用创建页面，你在浏览器里点击确认就行。我会自动检测你是否完成。
 
 **Auto-detect**: While the background command is running, periodically check:
-```bash
-lark-cli doctor --json 2>&1
+```
+lark-cli doctor --json
 ```
 When `config_file` and `app_resolved` both show `pass`, the app is created. **Immediately** move to Step 3.
 
@@ -71,8 +117,7 @@ When `config_file` and `app_resolved` both show `pass`, the app is created. **Im
 
 Use the **non-blocking device flow** so Cola can monitor progress:
 
-```bash
-# Step 3a: Initiate authorization (returns immediately)
+```
 lark-cli auth login --no-wait --domain all --json
 ```
 
@@ -86,29 +131,28 @@ Tell the user:
 > [显示 verification_url]
 > 登录飞书账号并点击"授权"就好，我会自动检测授权结果。
 
-```bash
-# Step 3b: Poll for completion (run in background, blocks until authorized)
-lark-cli auth login --device-code "<device_code from 3a>"
+Then poll for completion in background:
+```
+lark-cli auth login --device-code "<device_code from above>"
 ```
 
-Run this in background. When it completes successfully, authorization is done. **Immediately** proceed to Step 4.
+When it completes successfully, authorization is done. **Immediately** proceed to Step 4.
 
 **Alternative**: If you prefer active polling instead of background blocking:
-```bash
-# Check every few seconds
-lark-cli doctor --json 2>&1
+```
+lark-cli doctor --json
 ```
 When `token_exists` and `token_verified` both show `pass`, authorization is complete.
 
 ## Step 4: Verify and Report
 
-```bash
-lark-cli doctor --json 2>&1
+```
+lark-cli doctor --json
 ```
 
 If all checks pass, run a smoke test:
-```bash
-lark-cli calendar +agenda --format pretty 2>&1
+```
+lark-cli calendar +agenda --format pretty
 ```
 
 ## You're Ready
@@ -126,7 +170,8 @@ lark-cli calendar +agenda --format pretty 2>&1
 
 | 错误 | 解决 |
 |------|------|
-| `command not found: lark-cli` | `npm install -g @larksuite/cli` |
+| `node` not found | Install Node.js from https://nodejs.org |
+| `lark-cli` not found | `npm install -g @larksuite/cli` |
 | `no config found` | `lark-cli config init --new --brand feishu` |
 | `token expired` | Run Step 3 again (non-blocking device flow) |
 | `missing_scope: xxx` | `lark-cli auth login --no-wait --scope "xxx" --json` → get URL → poll with `--device-code` |
