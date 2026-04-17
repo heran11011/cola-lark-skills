@@ -1,120 +1,77 @@
 ---
 name: lark-setup
 description: >
-  Set up Lark/Feishu (飞书) integration for Cola — install lark-cli, configure
-  app credentials, authorize permissions. Use when the user wants to connect
-  Feishu, set up Lark, or when any lark-* skill fails because lark-cli is
-  not installed or not configured. Trigger phrases: "连接飞书", "接入飞书",
-  "配置飞书", "飞书设置", "lark setup", "connect feishu",
-  "lark-cli not found", "飞书授权".
-  Also trigger when you detect lark-cli errors like "command not found",
-  "no config", "missing_scope", or "token expired".
-  PROACTIVE: If lark-cli is not installed or not configured, start this
-  setup flow immediately without waiting for user to ask. Tell the user
-  what Feishu skills are available and begin installation in one go.
+  Use when the user wants to connect Feishu, set up Lark integration,
+  or when any lark-* skill fails. Trigger on: "连接飞书", "接入飞书",
+  "配置飞书", "飞书设置", "lark setup", "connect feishu", "飞书授权",
+  or lark-cli errors like "command not found", "no config", "missing_scope",
+  "token expired". Also trigger proactively when lark-cli is missing or
+  unconfigured — start setup immediately without waiting for user to ask.
 ---
 
 # Lark Setup — Connect Cola to Feishu
 
-**Design goal**: FULLY AUTOMATIC. The user does NOTHING except click twice in the browser for Feishu authorization. Cola handles every single command automatically — installing Node.js, installing lark-cli, configuring the app, and authorizing. Do NOT ask the user to run commands manually. Do NOT stop to explain what you're doing. Just do it.
+## Overview
 
-**Official reference**: https://open.feishu.cn/document/no_class/mcp-archive/feishu-cli-installation-guide.md
+Fully automatic Feishu integration setup. The user only clicks browser links for authorization — Cola handles Node.js installation, lark-cli setup, app configuration, and permission grants as one continuous flow. Only speak to the user when they need to act.
 
-## PRIORITY ZERO: Verify Shell Environment
+Official reference: https://open.feishu.cn/document/no_class/mcp-archive/feishu-cli-installation-guide.md
 
-在执行任何命令之前，先测试当前 shell 是否可用：
+## When to Use
+
+- User asks to connect Feishu or set up Lark
+- Any lark-* skill fails with missing CLI or auth errors
+- `lark-cli doctor` shows failures
+- Proactively: skill pack is installed but lark-cli isn't configured
+
+When loaded, immediately run Step 0 and tell the user:
+
+> 我检测到你安装了飞书集成技能包，可以帮你读群消息、管任务、查日程、搜文档、查表格。
+> 现在帮你连接飞书，只需要在浏览器里点两下就好。
+
+## Quick Reference
+
+| 状态 | 跳转 |
+|------|------|
+| `node` not found | Step 0.5 |
+| `lark-cli` not found | Step 1 |
+| config_file: fail | Step 2 |
+| app_resolved: fail | Step 2 |
+| token_exists: fail | Step 3 |
+| token expired | Step 3 |
+| 全部 pass | 完成 |
+
+## Verify Shell First
+
+Many Windows machines don't have bash — test before anything else:
 
 ```
 echo hello
 ```
 
-如果能输出 "hello"，shell 正常，直接跳到 Step 0。
+If output is "hello", proceed. If errors or no output, read [references/windows-compat.md](./references/windows-compat.md) for shell configuration (setting shellPath to cmd.exe, restart Cola, etc).
 
-如果报错 "No bash shell found" 或没有任何输出：
+## Step 0: Diagnose
 
-1. 检查 settings.json（路径：`~/.cola/agent/settings.json` 或 `~/.pi/agent/settings.json`）
-2. 设置 shellPath 为 cmd.exe：
-   ```json
-   {"shellPath": "C:\\Windows\\System32\\cmd.exe"}
-   ```
-3. 告诉用户重启 Cola：
-   > 我已经配好了命令行环境，需要重启一下 Cola 才能生效。请关闭 Cola 再重新打开，然后跟我说"继续连接飞书"。
-4. 注意：改成 cmd.exe 后，`nohup` 和 `&` 不可用，需要改用 `start /b` 方式后台运行
-
-如果 cmd.exe 也不行，再试 PowerShell：`C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`
-
-## CRITICAL: Windows Command Compatibility
-
-**Rules for ALL commands in ALL lark-* skills:**
-- Do NOT use `which` — doesn't exist on Windows. Just run the command directly.
-- Do NOT use `2>/dev/null` — not valid in cmd.exe.
-- Do NOT chain with `&&` — not reliable cross-platform. Run commands **one at a time**.
-- Do NOT use bash syntax like `$(...)`, `||`, pipes.
-- `lark-cli` commands are cross-platform and work the same everywhere.
-- On Windows, if `lark-cli` is not found by name, try full path: `%APPDATA%\npm\lark-cli.cmd`
-- On Windows, if `npm` is not found by name, try full path: `C:\Progra~1\nodejs\npm.cmd`
-
-**If commands run but return no output**, Cola may need to use the bat-file workaround:
-1. Write a `.bat` file with the command
-2. Execute the `.bat` file
-3. Read the output from a result file
-
-Example:
-```
-@echo off
-echo STARTED > %TEMP%\lark-out.txt
-call lark-cli doctor >> %TEMP%\lark-out.txt 2>&1
-echo __DONE__ >> %TEMP%\lark-out.txt
-```
-Then read `%TEMP%\lark-out.txt`.
-
-## Behavior: Be Proactive
-
-When this skill is loaded, **immediately** run Step 0. If Feishu is not fully configured, **do not wait for the user to ask** — tell them:
-
-> 我检测到你安装了飞书集成技能包，可以帮你读群消息、管任务、查日程、搜文档、查表格。
-> 现在帮你连接飞书，只需要在浏览器里点两下就好。
-
-Then proceed directly. **Do not stop between steps.** Do not explain each step. Do not ask "要继续吗？". The entire setup should feel like one continuous flow. Only speak to the user when they need to do something (click in browser).
-
-## Step 0: Diagnose Current State
-
-Run these one at a time:
+Run each separately (`lark-cli doctor` doesn't support `--json`, parse text output for "pass"/"fail"):
 
 ```
 node --version
-```
-If fails → Step 0.5
-
-```
 lark-cli --version
-```
-If fails → Step 1.
-
-```
 lark-cli doctor
 ```
-**IMPORTANT**: `lark-cli doctor` does NOT support `--json` flag. Run it plain. Parse the text output (look for "pass" or "fail").
 
-根据 `lark-cli doctor` 结果跳转：
+Use Quick Reference table above for routing.
 
-| doctor 结果 | 跳转 |
-|-------------|------|
-| config_file: fail | → Step 2（创建应用）|
-| config_file: pass, app_resolved: fail | → Step 2（重新创建应用）|
-| config_file: pass, token_exists: fail | → Step 3（登录授权）|
-| token_exists: pass, token_local: fail (expired) | → Step 3（重新登录）|
-| 全部 pass | → Step 4（验证）→ 完成 |
+## Step 0.5: Install Node.js
 
-## Step 0.5: Auto-Install Node.js
-
-Do NOT ask the user to install manually. Install it automatically.
+Install silently — don't ask user to do this.
 
 **Windows:**
 ```
 winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements
 ```
-If `winget` fails, try:
+Fallback MSI:
 ```
 powershell -Command "Start-BitsTransfer -Source 'https://nodejs.org/dist/v22.15.0/node-v22.15.0-x64.msi' -Destination '$env:TEMP\node-install.msi'; Start-Process msiexec -ArgumentList '/i','$env:TEMP\node-install.msi','/quiet','/norestart' -Wait"
 ```
@@ -124,130 +81,74 @@ powershell -Command "Start-BitsTransfer -Source 'https://nodejs.org/dist/v22.15.
 curl -fsSL https://nodejs.org/dist/v22.15.0/node-v22.15.0.pkg -o /tmp/node.pkg && sudo installer -pkg /tmp/node.pkg -target /
 ```
 
-After install on Windows, **PATH may not update until shell restarts**. If `node --version` still fails, tell user to restart Cola (one time only).
+If `node` still not found after install, PATH hasn't refreshed — tell user to restart Cola once.
 
-Immediately proceed to Step 1.
+## Step 1: Install lark-cli
 
-## Step 1: Install lark-cli and Feishu Skills
-
-**Method A — Recommended (one command):**
 ```
 npx @larksuite/cli@latest install
 ```
-This installs lark-cli globally and adds Feishu skill components in one step.
 
-**Method B — If Method A fails:**
-Run two commands in order, one at a time:
+If that fails:
 ```
 npm install -g @larksuite/cli
 ```
-```
-npx -y skills add https://open.feishu.cn --skill -y
-```
 
-Verify:
-```
-lark-cli --version
-```
-
-If commands fail with "not found", try Windows full paths:
-- `C:\Progra~1\nodejs\npm.cmd install -g @larksuite/cli`
-- `C:\Progra~1\nodejs\npx.cmd @larksuite/cli@latest install`
-
-Immediately proceed to Step 2.
+Verify: `lark-cli --version`. If "not found", see [references/windows-compat.md](./references/windows-compat.md) for full path alternatives.
 
 ## Step 2: Create App
 
-> **超时须知**：用户从看到链接到完成浏览器授权，通常需要 30-120 秒。**强烈建议使用后台运行模式而非直接执行。**
+This command blocks while waiting for browser authorization. If run directly, shell timeout kills it and the callback server dies with it — user completes auth but config never writes. Use background execution.
 
-使用后台运行模式，避免命令超时被杀导致回调服务消失：
-
+**Bash / Git Bash:**
 ```bash
-# 1. 后台启动，输出写入临时文件
 nohup lark-cli config init --new > /tmp/lark-init-output.txt 2>&1 &
-
-# 2. 等几秒后读取输出，提取授权链接
 sleep 5 && cat /tmp/lark-init-output.txt
-
-# 3. 把链接发给用户，用户点完后再次读取输出检查结果
-cat /tmp/lark-init-output.txt
-# 看到 "应用配置成功" 或 "OK" 字样就是成功了
-
-# 4. 如果用户说点完了但输出里还是"等待配置应用..."，再等几秒重新 cat
 ```
 
-**Windows cmd.exe 环境下**，把 `nohup ... &` 替换为 `start /b`：
-```cmd
-start /b lark-cli config init --new > %TEMP%\lark-init-output.txt 2>&1
-timeout /t 5 >nul & type %TEMP%\lark-init-output.txt
-```
+**cmd.exe** — see [references/windows-compat.md](./references/windows-compat.md) for `start /b` pattern.
 
-Tell the user (this is the FIRST time you need to talk to them):
+Extract the authorization URL and tell the user (first interaction):
 > 请点击下面的链接完成飞书应用配置（或扫码）：
-> [paste the authorization URL from command output]
+> [URL]
 > 完成后我会自动继续。
 
-**If timeout** ("max poll attempts reached"): just run the command again.
+After user clicks, re-read output file. "应用配置成功" or "OK" = success. Still waiting = wait a few more seconds. "max poll attempts reached" = re-run command.
 
-Verify:
-```
-lark-cli doctor
-```
-When `config_file` and `app_resolved` both "pass" → immediately Step 3.
+Verify: `lark-cli doctor` — `config_file` and `app_resolved` both pass → Step 3.
 
-## Step 3: Login and Authorize
+## Step 3: Authorize Permissions
 
-> **超时须知**：用户从看到链接到完成浏览器授权，通常需要 30-120 秒。**强烈建议使用后台运行模式而非直接执行。**
-
-使用后台运行模式：
+Same background pattern as Step 2:
 
 ```bash
-# 1. 后台启动，输出写入临时文件
 nohup lark-cli auth login --recommend > /tmp/lark-auth-output.txt 2>&1 &
-
-# 2. 等几秒后读取输出，提取授权链接
 sleep 5 && cat /tmp/lark-auth-output.txt
-
-# 3. 把链接发给用户，用户点完后再次读取输出检查结果
-cat /tmp/lark-auth-output.txt
-
-# 4. 如果用户说点完了但输出里还是等待状态，再等几秒重新 cat
 ```
 
-**Windows cmd.exe 环境下**：
-```cmd
-start /b lark-cli auth login --recommend > %TEMP%\lark-auth-output.txt 2>&1
-timeout /t 5 >nul & type %TEMP%\lark-auth-output.txt
-```
-
-Tell the user (SECOND time):
+Tell user (second interaction):
 > 最后一步，点击下面的链接完成授权：
-> [paste the authorization URL from command output]
+> [URL]
 
-### 补充搜索权限
+### Supplement search scope
 
-`--recommend` 不包含 `search:docs:read` 这个 scope，但文档搜索（lark-docs skill）依赖它。在上面的 `--recommend` 授权成功之后，紧接着补充：
+`--recommend` doesn't include `search:docs:read`, which lark-docs needs. After recommend auth succeeds:
 
 ```bash
 nohup lark-cli auth login --scope "search:docs:read" > /tmp/lark-search-scope.txt 2>&1 &
 sleep 5 && cat /tmp/lark-search-scope.txt
 ```
 
-提取链接发给用户，等用户点完，同上。如果 `--recommend` 那步已经包含了这个 scope（未来版本可能更新），这步会自动跳过，不影响。
-
-Immediately proceed to Step 4.
+Send link to user. If already covered by `--recommend`, command auto-skips.
 
 ## Step 4: Verify
 
 ```
 lark-cli auth status
-```
-
-```
 lark-cli doctor
 ```
 
-If all pass → done.
+All pass → done.
 
 ## You're Ready
 
@@ -260,19 +161,14 @@ If all pass → done.
 >
 > 试试看？
 
-## Error Recovery
+## Common Mistakes
 
-| 错误 | 解决 |
-|------|------|
-| No bash shell found | **Priority Zero**: 配置 shellPath 为 cmd.exe，然后重启 Cola |
-| Commands run but no output | 用 bat 文件中转：写 bat → 执行 → 读结果文件 |
-| `node` not found | winget install 或 msi 静默安装 |
-| `npm` / `npx` not found | 试完整路径 `C:\Progra~1\nodejs\npm.cmd` |
-| `lark-cli` not found | 先试 `npx @larksuite/cli@latest install`；失败则 `npm install -g @larksuite/cli` |
-| `no config found` | `lark-cli config init --new` |
-| `token expired` | `lark-cli auth login --recommend` |
-| `missing_scope: xxx` | `lark-cli auth login --recommend`（会自动补充所需权限） |
+| 错误 | 原因与解决 |
+|------|-----------|
+| No bash shell found | Windows 没有 bash，配置 shellPath 为 cmd.exe 后重启 Cola（见 [windows-compat.md](./references/windows-compat.md)） |
+| 命令执行无输出 | cmd.exe 偶发问题，用 bat 文件中转（见 [windows-compat.md](./references/windows-compat.md)） |
+| 授权成功但 config 没写入 | 命令被超时杀掉了，callback server 一起死了。用后台执行模式重试 |
+| `missing_scope: xxx` | `lark-cli auth login --recommend` 补权限 |
 | `max poll attempts reached` | 直接重试同一条命令 |
-| `EACCES` / permission denied (npm) | 加 `--prefix` 或用管理员权限运行 |
-| 安装后 `lark-cli` 仍找不到 | PATH 未刷新，重启 Cola 或用完整路径 `%APPDATA%\npm\lark-cli.cmd` |
-| 网络超时 / ETIMEOUT | 检查网络连接，必要时设置 npm 代理：`npm config set proxy http://...` |
+| 安装后命令仍找不到 | PATH 未刷新，重启 Cola 或用完整路径（见 [windows-compat.md](./references/windows-compat.md)） |
+| 网络超时 / ETIMEOUT | 检查网络，必要时 `npm config set proxy http://...` |
