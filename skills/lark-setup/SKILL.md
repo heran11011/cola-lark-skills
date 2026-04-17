@@ -20,35 +20,28 @@ description: >
 
 **Official reference**: https://open.feishu.cn/document/no_class/mcp-archive/feishu-cli-installation-guide.md
 
-## PRIORITY ZERO: Fix Shell on Windows
+## PRIORITY ZERO: Verify Shell Environment
 
-**This is the most common blocker.** On Windows, Cola's bash tool often fails with "No bash shell found" because Windows doesn't have bash. You MUST fix this FIRST before anything else.
+在执行任何命令之前，先测试当前 shell 是否可用：
 
-**If your bash/shell tool returns "No bash shell found" or similar errors:**
+```
+echo hello
+```
 
-1. Find your settings file. It is typically at one of these locations:
-   - `C:\Users\<username>\.pi\agent\settings.json`
-   - `C:\Users\<username>\.cola\agent\settings.json`
-   Check which one exists using the file read tool.
+如果能输出 "hello"，shell 正常，直接跳到 Step 0。
 
-2. Write (or update) the settings file to point to cmd.exe:
+如果报错 "No bash shell found" 或没有任何输出：
+
+1. 检查 settings.json（路径：`~/.cola/agent/settings.json` 或 `~/.pi/agent/settings.json`）
+2. 设置 shellPath 为 cmd.exe：
    ```json
-   {
-     "shellPath": "C:\\Windows\\System32\\cmd.exe"
-   }
+   {"shellPath": "C:\\Windows\\System32\\cmd.exe"}
    ```
-
-3. **After changing shellPath, you MUST tell the user to restart Cola.** The shell config is only loaded at startup. Say:
+3. 告诉用户重启 Cola：
    > 我已经配好了命令行环境，需要重启一下 Cola 才能生效。请关闭 Cola 再重新打开，然后跟我说"继续连接飞书"。
+4. 注意：改成 cmd.exe 后，`nohup` 和 `&` 不可用，需要改用 `start /b` 方式后台运行
 
-4. After restart, test that commands work:
-   ```
-   echo hello
-   ```
-   If you get output → shell is working, proceed to Step 0.
-   If still no output → try PowerShell path instead: `C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`
-
-**DO NOT skip this step. DO NOT ask the user to install Git for Windows.** cmd.exe is already on every Windows machine.
+如果 cmd.exe 也不行，再试 PowerShell：`C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`
 
 ## CRITICAL: Windows Command Compatibility
 
@@ -103,9 +96,15 @@ lark-cli doctor
 ```
 **IMPORTANT**: `lark-cli doctor` does NOT support `--json` flag. Run it plain. Parse the text output (look for "pass" or "fail").
 
-- `config_file` fail → Step 2
-- `token_exists` fail or `token expired` → Step 3
-- All pass → "You're Ready"
+根据 `lark-cli doctor` 结果跳转：
+
+| doctor 结果 | 跳转 |
+|-------------|------|
+| config_file: fail | → Step 2（创建应用）|
+| config_file: pass, app_resolved: fail | → Step 2（重新创建应用）|
+| config_file: pass, token_exists: fail | → Step 3（登录授权）|
+| token_exists: pass, token_local: fail (expired) | → Step 3（重新登录）|
+| 全部 pass | → Step 4（验证）→ 完成 |
 
 ## Step 0.5: Auto-Install Node.js
 
@@ -159,11 +158,29 @@ Immediately proceed to Step 2.
 
 ## Step 2: Create App
 
-```
-lark-cli config init --new
+> **超时须知**：用户从看到链接到完成浏览器授权，通常需要 30-120 秒。**强烈建议使用后台运行模式而非直接执行。**
+
+使用后台运行模式，避免命令超时被杀导致回调服务消失：
+
+```bash
+# 1. 后台启动，输出写入临时文件
+nohup lark-cli config init --new > /tmp/lark-init-output.txt 2>&1 &
+
+# 2. 等几秒后读取输出，提取授权链接
+sleep 5 && cat /tmp/lark-init-output.txt
+
+# 3. 把链接发给用户，用户点完后再次读取输出检查结果
+cat /tmp/lark-init-output.txt
+# 看到 "应用配置成功" 或 "OK" 字样就是成功了
+
+# 4. 如果用户说点完了但输出里还是"等待配置应用..."，再等几秒重新 cat
 ```
 
-**IMPORTANT**: Run this command in background (with a timeout). The command will output an authorization URL. Extract that URL and send it to the user.
+**Windows cmd.exe 环境下**，把 `nohup ... &` 替换为 `start /b`：
+```cmd
+start /b lark-cli config init --new > %TEMP%\lark-init-output.txt 2>&1
+timeout /t 5 >nul & type %TEMP%\lark-init-output.txt
+```
 
 Tell the user (this is the FIRST time you need to talk to them):
 > 请点击下面的链接完成飞书应用配置（或扫码）：
@@ -180,15 +197,43 @@ When `config_file` and `app_resolved` both "pass" → immediately Step 3.
 
 ## Step 3: Login and Authorize
 
-```
-lark-cli auth login --recommend
+> **超时须知**：用户从看到链接到完成浏览器授权，通常需要 30-120 秒。**强烈建议使用后台运行模式而非直接执行。**
+
+使用后台运行模式：
+
+```bash
+# 1. 后台启动，输出写入临时文件
+nohup lark-cli auth login --recommend > /tmp/lark-auth-output.txt 2>&1 &
+
+# 2. 等几秒后读取输出，提取授权链接
+sleep 5 && cat /tmp/lark-auth-output.txt
+
+# 3. 把链接发给用户，用户点完后再次读取输出检查结果
+cat /tmp/lark-auth-output.txt
+
+# 4. 如果用户说点完了但输出里还是等待状态，再等几秒重新 cat
 ```
 
-**IMPORTANT**: Same pattern as Step 2 — run in background, the command outputs an authorization URL. Extract and send to user.
+**Windows cmd.exe 环境下**：
+```cmd
+start /b lark-cli auth login --recommend > %TEMP%\lark-auth-output.txt 2>&1
+timeout /t 5 >nul & type %TEMP%\lark-auth-output.txt
+```
 
-Tell the user (SECOND and last time):
+Tell the user (SECOND time):
 > 最后一步，点击下面的链接完成授权：
 > [paste the authorization URL from command output]
+
+### 补充搜索权限
+
+`--recommend` 不包含 `search:docs:read` 这个 scope，但文档搜索（lark-docs skill）依赖它。在上面的 `--recommend` 授权成功之后，紧接着补充：
+
+```bash
+nohup lark-cli auth login --scope "search:docs:read" > /tmp/lark-search-scope.txt 2>&1 &
+sleep 5 && cat /tmp/lark-search-scope.txt
+```
+
+提取链接发给用户，等用户点完，同上。如果 `--recommend` 那步已经包含了这个 scope（未来版本可能更新），这步会自动跳过，不影响。
 
 Immediately proceed to Step 4.
 
