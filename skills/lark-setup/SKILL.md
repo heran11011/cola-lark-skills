@@ -18,6 +18,8 @@ description: >
 
 **Design goal**: FULLY AUTOMATIC. Do not ask the user to download or install anything manually. Cola detects what's missing and installs everything by itself. The user only clicks in the browser for Feishu authorization.
 
+**Official reference**: https://open.feishu.cn/document/no_class/mcp-archive/feishu-cli-installation-guide.md
+
 ## CRITICAL: Windows Shell Compatibility
 
 Cola on Windows may use cmd.exe, PowerShell, or bash. You MUST handle all cases:
@@ -64,7 +66,7 @@ If fails → try full path on Windows: `%APPDATA%\npm\lark-cli.cmd --version`. I
 ```
 lark-cli doctor
 ```
-**IMPORTANT**: `lark-cli doctor` does NOT support `--json` flag. Run it without any flags. Parse the text output to check status (look for "pass" or "fail" in each line).
+**IMPORTANT**: `lark-cli doctor` does NOT support `--json` flag. Run it plain. Parse the text output (look for "pass" or "fail" in each check line).
 
 - `config_file` fail → Step 2
 - `token_exists` fail or `token expired` → Step 3
@@ -72,7 +74,7 @@ lark-cli doctor
 
 ## Step 0.5: Auto-Install Node.js
 
-Do NOT ask the user to install Node.js. Install it automatically.
+Do NOT ask the user to install Node.js manually. Try to install it automatically first.
 
 **Windows:**
 ```
@@ -98,8 +100,11 @@ Tell the user:
 
 Then immediately proceed to Step 1.
 
-## Step 1: Install lark-cli
+## Step 1: Install lark-cli and Feishu Skills
 
+This step has **TWO commands** (official install procedure):
+
+**Command 1: Install CLI**
 ```
 npm install -g @larksuite/cli
 ```
@@ -109,7 +114,19 @@ If `npm` is not found on Windows, try the full path:
 C:\Progra~1\nodejs\npm.cmd install -g @larksuite/cli
 ```
 
-Verify:
+**Command 2: Add Feishu skill components**
+```
+npx -y skills add https://open.feishu.cn --skill -y
+```
+
+This downloads and registers the Feishu API skill components that lark-cli needs.
+
+If `npx` is not found on Windows, try:
+```
+C:\Progra~1\nodejs\npx.cmd -y skills add https://open.feishu.cn --skill -y
+```
+
+**Verify installation:**
 ```
 lark-cli --version
 ```
@@ -120,49 +137,58 @@ If `lark-cli` is not found after install, on Windows it may be at:
 
 Then immediately proceed to Step 2.
 
-## Step 2: Create App (Auto-detect completion)
+## Step 2: Create App (Configure credentials)
 
 ```
 lark-cli config init --new --brand feishu
 ```
 
-This command blocks until the user completes the browser flow (scan QR code or click link). It may show a QR code in the terminal and a URL link.
+This command generates an authorization link (and may show a QR code). The user needs to open the link in their browser to complete app creation. The command blocks until the user finishes.
 
 Tell the user:
-> 我帮你打开了飞书应用创建页面。你可以扫描终端里的二维码，或者点击链接完成配置。
+> 我帮你启动了飞书应用配置。你可以扫描终端里的二维码，或者点击下方链接在浏览器中完成配置。
 
-**Timeout handling**: This command polls up to 200 times (~10 minutes). If it times out with "max poll attempts reached", just run it again — the second attempt usually works because the user already created the app.
+**Timeout handling**: This command polls up to 200 times (~10 minutes). If it times out with "max poll attempts reached", just run it again — the second attempt usually works because the user may have already created the app.
 
-**Auto-detect**: After the command completes, verify:
+**Verify**: After the command completes, check:
 ```
 lark-cli doctor
 ```
 When output shows `config_file` and `app_resolved` both "pass" → **immediately** move to Step 3.
 
-## Step 3: Authorize + Permissions (Auto-detect completion)
+## Step 3: Login and Authorize (Official method)
 
+Use the official recommended authorization command:
+
+```
+lark-cli auth login --recommend
+```
+
+This command generates an authorization link. The user opens it in the browser, logs in with their Feishu account, and grants permissions. The command blocks until authorization is complete.
+
+Tell the user:
+> 请打开链接完成飞书授权登录，登录飞书账号并点击"授权"就好。我会自动等待授权完成。
+
+**Alternative (non-blocking mode)** — if you need to monitor progress:
 ```
 lark-cli auth login --no-wait --domain all --json
 ```
-
-This returns JSON with `verification_url` and `device_code`.
-
-Tell the user:
-> 请打开这个链接完成飞书授权：
-> [显示 verification_url]
-> 登录飞书账号并点击"授权"就好，我会自动检测授权结果。
-
-Poll for completion:
+This returns JSON with `verification_url` and `device_code`. Then poll with:
 ```
 lark-cli auth login --device-code "<device_code>"
 ```
-
-This command blocks until the user authorizes. When done, it prints the result.
 
 When done → **immediately** proceed to Step 4.
 
 ## Step 4: Verify and Report
 
+```
+lark-cli auth status
+```
+
+This shows the current auth state, including which scopes are authorized.
+
+Also run a health check:
 ```
 lark-cli doctor
 ```
@@ -191,11 +217,11 @@ lark-cli calendar +agenda --format pretty
 |------|------|
 | `node` not found | Auto-install: winget (Win) / curl+installer (Mac) |
 | `winget` not found | Ask user to install Node.js from https://nodejs.org |
-| `npm` not found | Node.js not in PATH — try full path `C:\Progra~1\nodejs\npm.cmd` or restart shell |
-| `lark-cli` not found | `npm install -g @larksuite/cli`, then check `%APPDATA%\npm\lark-cli.cmd` |
+| `npm` / `npx` not found | Node.js not in PATH — try full path `C:\Progra~1\nodejs\npm.cmd` or restart shell |
+| `lark-cli` not found | Step 1: `npm install -g @larksuite/cli` + `npx -y skills add https://open.feishu.cn --skill -y` |
 | `no config found` | `lark-cli config init --new --brand feishu` |
-| `token expired` | Run Step 3 again |
-| `missing_scope: xxx` | `lark-cli auth login --no-wait --scope "xxx" --json` → poll |
+| `token expired` | `lark-cli auth login --recommend` |
+| `missing_scope: xxx` | `lark-cli auth login --recommend` (re-authorize with recommended scopes) |
 | `app not found` | `lark-cli config init --new --brand feishu` |
 | `max poll attempts reached` | Just retry the same command — user may have already completed in browser |
 | shell errors on Windows | Try writing commands to a .bat file, execute it, read the output file |
