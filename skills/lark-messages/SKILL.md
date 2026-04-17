@@ -13,13 +13,11 @@ description: >
 
 Read Feishu group messages via `lark-cli` and summarize them with AI.
 
-**CLI**: `lark-cli` (find it with `which lark-cli` or use the full path)
-
 ## How It Works
 
 ### Step 1: Find the group
 
-```bash
+```
 lark-cli im +chat-search --query "群名关键词"
 ```
 
@@ -30,7 +28,7 @@ If unsure which group, ask the user. Common groups they may ask about:
 
 ### Step 2: Read messages
 
-```bash
+```
 # Recent messages (default: ~20, returns JSON array)
 lark-cli im +chat-messages-list --chat-id <chat_id>
 
@@ -75,7 +73,7 @@ If the initial fetch had `has_more: true`, mention "以上是最近 N 条消息�
 
 ### Step 4 (optional): Search specific messages
 
-```bash
+```
 # Search by keyword across all chats
 lark-cli im +messages-search --query "关键词"
 
@@ -87,7 +85,7 @@ lark-cli im +messages-search --help
 
 Only send messages when the user explicitly asks. Always draft and confirm first.
 
-```bash
+```
 # Send to group
 lark-cli im +messages-send --chat-id <chat_id> --text "content"
 

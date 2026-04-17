@@ -14,7 +14,7 @@ Manage Feishu tasks via `lark-cli`.
 
 ## View My Tasks
 
-```bash
+```
 lark-cli task +get-my-tasks
 ```
 
@@ -22,7 +22,7 @@ Present tasks sorted by due date. Highlight overdue items.
 
 ## Create a Task
 
-```bash
+```
 # Basic task
 lark-cli task +create --summary "任务标题"
 
@@ -35,13 +35,13 @@ lark-cli task +create --help
 
 ## Complete a Task
 
-```bash
+```
 lark-cli task +complete --task-id <task_id>
 ```
 
 ## Other Operations
 
-```bash
+```
 # Update task
 lark-cli task +update --task-id <id> --summary "new title"
 

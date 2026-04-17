@@ -18,12 +18,25 @@ description: >
 
 **Design goal**: FULLY AUTOMATIC. Do not ask the user to download or install anything manually. Cola detects what's missing and installs everything by itself. The user only clicks in the browser for Feishu authorization.
 
-## Cross-Platform Notes
+## CRITICAL: Windows Shell Compatibility
 
-Cola runs in PowerShell on Windows and bash/zsh on macOS/Linux. All commands must work on both.
-- Do NOT use `which`, `2>/dev/null`, or `&&` chaining — not cross-platform safe
-- Run commands **one at a time**
-- `lark-cli` commands are cross-platform, no changes needed
+Cola on Windows may use cmd.exe, PowerShell, or bash. You MUST handle all cases:
+
+**Rules for ALL commands in ALL lark-* skills:**
+- Do NOT use `which` — it doesn't exist on Windows. Just run the command and check if it errors.
+- Do NOT use `2>/dev/null` — not valid in cmd.exe. Just let errors appear.
+- Do NOT chain with `&&` — not reliable cross-platform. Run commands **one at a time**.
+- Do NOT use `bash` syntax like `$(...)`, `||`, pipes, etc.
+- `lark-cli` commands themselves are cross-platform and work the same everywhere.
+- On Windows, `lark-cli` may be installed at `%APPDATA%\npm\lark-cli.cmd`. If `lark-cli` is not found, try the full path.
+- On Windows, if direct commands don't work, Cola may need to write a `.bat` file, execute it, and read the output file. This is expected behavior — the Skill should not assume direct command execution always works.
+
+**Windows bat file pattern** (for when direct shell execution fails):
+```
+@echo off
+lark-cli doctor > %TEMP%\lark-result.txt 2>&1
+type %TEMP%\lark-result.txt
+```
 
 ## Behavior: Be Proactive
 
@@ -46,11 +59,13 @@ If fails → Step 0.5
 ```
 lark-cli --version
 ```
-If fails → Step 1
+If fails → try full path on Windows: `%APPDATA%\npm\lark-cli.cmd --version`. If still fails → Step 1.
 
 ```
-lark-cli doctor --json
+lark-cli doctor
 ```
+**IMPORTANT**: `lark-cli doctor` does NOT support `--json` flag. Run it without any flags. Parse the text output to check status (look for "pass" or "fail" in each line).
+
 - `config_file` fail → Step 2
 - `token_exists` fail or `token expired` → Step 3
 - All pass → "You're Ready"
@@ -59,15 +74,12 @@ lark-cli doctor --json
 
 Do NOT ask the user to install Node.js. Install it automatically.
 
-**Windows (PowerShell):**
+**Windows:**
 ```
 winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements
 ```
-If `winget` is not available (older Windows), fall back to direct download:
-```
-Invoke-WebRequest -Uri "https://nodejs.org/dist/v22.15.0/node-v22.15.0-x64.msi" -OutFile "$env:TEMP\node-install.msi"
-Start-Process msiexec -ArgumentList "/i","$env:TEMP\node-install.msi","/quiet","/norestart" -Wait
-```
+If `winget` is not available, tell the user:
+> 需要安装 Node.js 运行环境。请打开 https://nodejs.org 下载安装，安装完成后告诉我。
 
 **macOS:**
 ```
@@ -78,6 +90,8 @@ After install, verify:
 ```
 node --version
 ```
+
+**Important**: After installing Node.js on Windows, you may need to restart the shell or open a new terminal for `node` and `npm` to be available in PATH. If `node --version` still fails after install, ask the user to restart Cola.
 
 Tell the user:
 > 正在安装运行环境，稍等一下...
@@ -90,10 +104,19 @@ Then immediately proceed to Step 1.
 npm install -g @larksuite/cli
 ```
 
+If `npm` is not found on Windows, try the full path:
+```
+C:\Progra~1\nodejs\npm.cmd install -g @larksuite/cli
+```
+
 Verify:
 ```
 lark-cli --version
 ```
+
+If `lark-cli` is not found after install, on Windows it may be at:
+- `%APPDATA%\npm\lark-cli.cmd`
+- `C:\Users\<username>\AppData\Roaming\npm\lark-cli.cmd`
 
 Then immediately proceed to Step 2.
 
@@ -103,14 +126,18 @@ Then immediately proceed to Step 2.
 lark-cli config init --new --brand feishu
 ```
 
-Run in background. Tell the user:
-> 我帮你打开了飞书应用创建页面，你在浏览器里点击确认就行。我会自动检测你是否完成。
+This command blocks until the user completes the browser flow (scan QR code or click link). It may show a QR code in the terminal and a URL link.
 
-**Auto-detect**: Periodically check:
+Tell the user:
+> 我帮你打开了飞书应用创建页面。你可以扫描终端里的二维码，或者点击链接完成配置。
+
+**Timeout handling**: This command polls up to 200 times (~10 minutes). If it times out with "max poll attempts reached", just run it again — the second attempt usually works because the user already created the app.
+
+**Auto-detect**: After the command completes, verify:
 ```
-lark-cli doctor --json
+lark-cli doctor
 ```
-When `config_file` and `app_resolved` both show `pass` → **immediately** move to Step 3.
+When output shows `config_file` and `app_resolved` both "pass" → **immediately** move to Step 3.
 
 ## Step 3: Authorize + Permissions (Auto-detect completion)
 
@@ -118,25 +145,29 @@ When `config_file` and `app_resolved` both show `pass` → **immediately** move 
 lark-cli auth login --no-wait --domain all --json
 ```
 
-Returns JSON with `verification_url` and `device_code`.
+This returns JSON with `verification_url` and `device_code`.
 
 Tell the user:
 > 请打开这个链接完成飞书授权：
 > [显示 verification_url]
 > 登录飞书账号并点击"授权"就好，我会自动检测授权结果。
 
-Poll for completion in background:
+Poll for completion:
 ```
 lark-cli auth login --device-code "<device_code>"
 ```
+
+This command blocks until the user authorizes. When done, it prints the result.
 
 When done → **immediately** proceed to Step 4.
 
 ## Step 4: Verify and Report
 
 ```
-lark-cli doctor --json
+lark-cli doctor
 ```
+
+Check that `token_exists` and `token_verified` both show "pass".
 
 Smoke test:
 ```
@@ -159,10 +190,12 @@ lark-cli calendar +agenda --format pretty
 | 错误 | 解决 |
 |------|------|
 | `node` not found | Auto-install: winget (Win) / curl+installer (Mac) |
-| `winget` not found | Fall back to MSI silent install |
-| `npm` not found | Node.js not in PATH — restart shell or use full path |
-| `lark-cli` not found | `npm install -g @larksuite/cli` |
+| `winget` not found | Ask user to install Node.js from https://nodejs.org |
+| `npm` not found | Node.js not in PATH — try full path `C:\Progra~1\nodejs\npm.cmd` or restart shell |
+| `lark-cli` not found | `npm install -g @larksuite/cli`, then check `%APPDATA%\npm\lark-cli.cmd` |
 | `no config found` | `lark-cli config init --new --brand feishu` |
 | `token expired` | Run Step 3 again |
 | `missing_scope: xxx` | `lark-cli auth login --no-wait --scope "xxx" --json` → poll |
 | `app not found` | `lark-cli config init --new --brand feishu` |
+| `max poll attempts reached` | Just retry the same command — user may have already completed in browser |
+| shell errors on Windows | Try writing commands to a .bat file, execute it, read the output file |

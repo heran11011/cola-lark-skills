@@ -14,7 +14,7 @@ View and manage Feishu calendar via `lark-cli`.
 
 ## View Agenda
 
-```bash
+```
 # Today's events
 lark-cli calendar +agenda
 
@@ -34,7 +34,7 @@ Use `--format pretty` for human-readable output instead of raw JSON.
 
 ## Create an Event
 
-```bash
+```
 lark-cli calendar +create --summary "会议标题" \
   --start "<YYYY-MM-DD>T14:00:00+08:00" \
   --end "<YYYY-MM-DD>T15:00:00+08:00"
@@ -45,7 +45,7 @@ lark-cli calendar +create --help
 
 ## Other Operations
 
-```bash
+```
 # Check someone's availability
 lark-cli calendar +freebusy --help
 

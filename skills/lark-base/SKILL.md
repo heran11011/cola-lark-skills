@@ -21,20 +21,22 @@ Bitable operations need a `base_token` (the base ID) and usually a `table_id`. T
 https://xxx.feishu.cn/base/<base_token>?table=<table_id>
 ```
 
+You can also find base_token from document search results — search results with `doc_types: "BITABLE"` contain the token in `result_meta.token`.
+
 ## List Tables
 
-```bash
-lark-cli base +table-list --base-token <app_token>
+```
+lark-cli base +table-list --base-token <base_token>
 ```
 
 ## Read Records
 
-```bash
+```
 # List all records
-lark-cli base +record-list --base-token <app_token> --table-id <table_id>
+lark-cli base +record-list --base-token <base_token> --table-id <table_id>
 
 # Get one record
-lark-cli base +record-get --base-token <app_token> --table-id <table_id> --record-id <id>
+lark-cli base +record-get --base-token <base_token> --table-id <table_id> --record-id <id>
 
 # Query with filter/aggregation
 lark-cli base +data-query --help  # check flags first
@@ -42,19 +44,19 @@ lark-cli base +data-query --help  # check flags first
 
 ## Write Records
 
-```bash
+```
 # Create or update
-lark-cli base +record-upsert --base-token <app_token> --table-id <table_id> \
+lark-cli base +record-upsert --base-token <base_token> --table-id <table_id> \
   --data '{"fields":{"Name":"value","Status":"active"}}'
 
 # Delete
-lark-cli base +record-delete --base-token <app_token> --table-id <table_id> --record-id <id>
+lark-cli base +record-delete --base-token <base_token> --table-id <table_id> --record-id <id>
 ```
 
 ## List Fields (understand table structure)
 
-```bash
-lark-cli base +field-list --base-token <app_token> --table-id <table_id>
+```
+lark-cli base +field-list --base-token <base_token> --table-id <table_id>
 ```
 
 ## Tips
@@ -66,23 +68,24 @@ lark-cli base +field-list --base-token <app_token> --table-id <table_id>
 
 ## IMPORTANT: Always Include Source Links
 
-After presenting query results, **always** append the original Bitable link so the user can jump to the source:
+After presenting query results, **always** append the original Bitable link so the user can jump to the source.
+
+Use the URL from search results if available (e.g. `https://my.feishu.cn/base/CIpCb0PuDaH2uisABShck3mvn0g`), or construct:
 
 ```
-https://<domain>.feishu.cn/base/<base_token>?table=<table_id>
+https://my.feishu.cn/base/<base_token>?table=<table_id>
 ```
 
 For example:
-> 查询结果如上。原始表格链接：https://xxx.feishu.cn/base/ABC123?table=tbl456
+> 查询结果如上。原始表格链接：https://my.feishu.cn/base/ABC123?table=tbl456
 
 If you also know the `record_id`, you can link to the specific record:
 ```
-https://<domain>.feishu.cn/base/<base_token>?table=<table_id>&record=<record_id>
+https://my.feishu.cn/base/<base_token>?table=<table_id>&record=<record_id>
 ```
 
-The domain is usually the user's Feishu tenant domain. If unknown, use the base URL from the API response or just provide the path portion. The user may want to:
+The user may want to:
 - View the full table with all columns
 - Apply their own filters
 - Edit data directly
 - Share the link with colleagues
-

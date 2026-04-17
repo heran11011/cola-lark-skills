@@ -15,7 +15,7 @@ Search and read Feishu documents via `lark-cli`.
 
 ## Search Documents
 
-```bash
+```
 lark-cli docs +search --query "搜索关键词"
 
 # Check all flags
@@ -29,7 +29,7 @@ lark-cli docs +search --help
 
 ## Read Document Content
 
-```bash
+```
 lark-cli docs +fetch --doc <doc_id>
 
 # Check flags
@@ -40,7 +40,7 @@ After reading, summarize the key points rather than dumping the full content.
 
 ## Create a Document
 
-```bash
+```
 lark-cli docs +create --title "文档标题"
 
 # Check flags for folder placement, etc.
@@ -55,18 +55,29 @@ lark-cli docs +create --help
 
 ## IMPORTANT: Always Include Source Links
 
-After presenting search results or document summaries, **always** include the original document link so the user can open it in Feishu:
+After presenting search results or document summaries, **always** include the original document link so the user can open it in Feishu.
 
-**From search results**: The API response should contain `url` or `doc_id`. If only `doc_id` is available, construct the link:
-```
-https://<domain>.feishu.cn/docx/<doc_id>
-```
+**From search results**: The API response contains `url` in `result_meta`. Use it directly — it's the real link. Example: `https://my.feishu.cn/base/CIpCb0PuDaH2uisABShck3mvn0g`
+
+If only `doc_id` / `token` is available, construct the link based on `doc_types`:
+- DOCX: `https://<domain>.feishu.cn/docx/<token>`
+- BITABLE: `https://<domain>.feishu.cn/base/<token>`
+- SHEET: `https://<domain>.feishu.cn/sheets/<token>`
+- WIKI: `https://<domain>.feishu.cn/wiki/<token>`
+
+The `<domain>` is usually `my.feishu.cn` for personal users.
 
 **Example output format**:
 > **周报 - 2026年第15周**
 > 摘要：本周完成了飞书集成 Skills 开发...
 >
-> 原文链接：https://xxx.feishu.cn/docx/ABC123
+> 原文链接：https://my.feishu.cn/docx/ABC123
+
+**Search result parsing notes** (from actual API response):
+- `title_highlighted` contains the title with `<h>` tags for highlighting — strip the tags for display
+- `result_meta.url` is the direct link
+- `result_meta.doc_types` tells you what type: DOCX, BITABLE, SHEET, etc.
+- `result_meta.owner_name` is the document owner
 
 Always present links as clickable — the user may want to:
 - Read the full document in Feishu
