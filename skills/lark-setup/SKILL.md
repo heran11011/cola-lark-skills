@@ -82,11 +82,7 @@ Start-Process msiexec -ArgumentList "/i","$env:TEMP\node-install.msi","/quiet","
 ```
 brew install node
 ```
-If `brew` is not available, download the latest LTS `.pkg` from https://nodejs.org and install:
-```
-curl -fsSL https://nodejs.org/en/download/ -o /dev/null
-```
-Tell the user: "请前往 https://nodejs.org 下载最新 LTS 版本安装"
+If `brew` is not available, tell the user: "请前往 https://nodejs.org 下载最新 LTS 版本安装"
 
 If `node` still not found after install, PATH hasn't refreshed — tell user to restart Cola once.
 
@@ -105,9 +101,15 @@ Verify: `lark-cli --version`. If "not found", see [references/windows-compat.md]
 
 ## Step 2: Create App
 
-This command blocks while waiting for browser authorization. If run directly, shell timeout kills it and the callback server dies with it — user completes auth but config never writes. Use background execution.
+This command blocks while waiting for browser authorization. If run directly, shell timeout kills it and the callback server dies with it — user completes auth but config never writes.
 
-**Bash / Git Bash:**
+**Preferred: use `bash_background` tool** (if available in your Cola environment):
+```
+bash_background(action="start", session_id="lark-init", command="lark-cli config init --new")
+```
+Then poll with `bash_background(action="read", session_id="lark-init")` to get the authorization URL and check completion.
+
+**Fallback (Bash / Git Bash):**
 ```bash
 nohup lark-cli config init --new > /tmp/lark-init-output.txt 2>&1 &
 sleep 5 && cat /tmp/lark-init-output.txt
@@ -126,8 +128,13 @@ Verify: `lark-cli doctor` — `config_file` and `app_resolved` both pass → Ste
 
 ## Step 3: Authorize Permissions
 
-Same background pattern as Step 2:
+Same background pattern as Step 2. **Prefer `bash_background`** if available:
 
+```
+bash_background(action="start", session_id="lark-auth", command="lark-cli auth login --recommend")
+```
+
+**Fallback:**
 ```bash
 nohup lark-cli auth login --recommend > /tmp/lark-auth-output.txt 2>&1 &
 sleep 5 && cat /tmp/lark-auth-output.txt

@@ -48,8 +48,7 @@ lark-cli im +chat-messages-list --help
 ```
 
 **Message format notes** (verified by testing):
-- Each message has `content` (text), `msg_type`, `create_time`
-- **Sender structure**: `sender` contains `{id, id_type, sender_type, tenant_key}` — there is NO `sender.name` field. You cannot get sender names from this API alone. Use `--format pretty` which shows a human-readable table, or note that the sender identity is unavailable.
+- **Always use `--format pretty`** — it outputs a human-readable table with sender names, timestamps, and message content. Do NOT parse raw JSON for sender info — the raw `sender` field only contains `{id, id_type, sender_type, tenant_key}` with NO name.
 - Messages are returned in **reverse chronological order** — reverse them for summaries
 - `has_more: true` means there are more pages — use `--page-token` to fetch the next page
 - **There is NO `--page-all` flag** on `+chat-messages-list`. You must paginate manually with `--page-token`.
