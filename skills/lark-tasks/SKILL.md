@@ -5,7 +5,8 @@ description: >
   complete tasks, add comments. Use when the user asks about their tasks,
   to-do items, pending work, or wants to create/complete a task. Trigger
   phrases: "我有什么任务", "还有什么没做", "待办", "帮我创建一个任务",
-  "任务完成了", "to-do", "飞书任务".
+  "任务完成了", "to-do", "飞书任务", "my tasks", "todo list",
+  "pending tasks", "create a task", "complete task".
 ---
 
 # Lark Tasks
@@ -60,3 +61,18 @@ lark-cli task +reopen --task-id <id>
 - Always run `--help` on subcommands to confirm exact flags
 - When creating tasks from meeting notes or conversations, extract the action item clearly
 - Use `--format pretty` for readable output
+
+## IMPORTANT: Always Include Source Links
+
+After presenting task results, include the Feishu task link so the user can view or edit in Feishu:
+
+```
+https://<domain>.feishu.cn/task/<task_id>
+```
+
+If the API response includes a `url` field, use that directly. Example:
+> **待办任务**
+> 1. 完成飞书集成文档（截止：4月20日）
+> 2. 修复登录 bug（已逾期）
+>
+> 在飞书中查看：https://xxx.feishu.cn/task/xxx

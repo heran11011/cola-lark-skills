@@ -35,13 +35,10 @@ mkdir -p "$SKILLS_DIR"
 SKILLS=(lark-setup lark-messages lark-tasks lark-calendar lark-docs lark-base)
 for skill in "${SKILLS[@]}"; do
     if [ -d "$SOURCE_DIR/$skill" ]; then
-        if [ -d "$SKILLS_DIR/$skill" ]; then
-            cp -r "$SOURCE_DIR/$skill" "$SKILLS_DIR/"
-            echo "  Updated:   $skill"
-        else
-            cp -r "$SOURCE_DIR/$skill" "$SKILLS_DIR/"
-            echo "  Installed: $skill"
-        fi
+        ACTION="Installed"
+        [ -d "$SKILLS_DIR/$skill" ] && ACTION="Updated"
+        cp -r "$SOURCE_DIR/$skill" "$SKILLS_DIR/"
+        echo "  $ACTION: $skill"
     fi
 done
 

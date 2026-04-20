@@ -1,5 +1,7 @@
 # Cola Lark Skills - 飞书集成技能包
 
+> v1.0.0
+
 [English](#english) | [中文](#中文)
 
 ---

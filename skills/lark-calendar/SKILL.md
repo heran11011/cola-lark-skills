@@ -24,6 +24,9 @@ lark-cli calendar +agenda --start "<YYYY-MM-DD>T00:00:00+08:00" --end "<YYYY-MM-
 # Date range (e.g. next 7 days) — calculate start and end dates
 lark-cli calendar +agenda --start "<today>T00:00:00+08:00" --end "<7 days later>T00:00:00+08:00"
 
+# This week (Monday to Sunday) — calculate this week's Monday and next Monday
+lark-cli calendar +agenda --start "<this Monday>T00:00:00+08:00" --end "<next Monday>T00:00:00+08:00"
+
 # Check all flags
 lark-cli calendar +agenda --help
 ```

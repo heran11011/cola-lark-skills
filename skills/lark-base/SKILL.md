@@ -6,7 +6,8 @@ description: >
   about 多维表格, bitable, spreadsheet data, table records, DAU data, or
   any data stored in Feishu tables. Trigger phrases: "查一下表格",
   "今天DAU多少", "多维表格", "表格里的数据", "帮我加一条记录",
-  "bitable", "base".
+  "bitable", "base", "query data", "spreadsheet", "lookup table",
+  "database records".
 ---
 
 # Lark Bitable (多维表格)
@@ -18,7 +19,7 @@ Query and manage Feishu Bitable data via `lark-cli`.
 Bitable operations need a `base_token` (the base ID) and usually a `table_id`. The user should provide these, or you can find them from the Bitable URL:
 
 ```
-https://xxx.feishu.cn/base/<base_token>?table=<table_id>
+https://<domain>.feishu.cn/base/<base_token>?table=<table_id>
 ```
 
 You can also find base_token from document search results — search results with `doc_types: "BITABLE"` contain the token in `result_meta.token`.

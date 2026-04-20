@@ -71,15 +71,22 @@ Install silently — don't ask user to do this.
 ```
 winget install OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements
 ```
-Fallback MSI:
+If `winget` is not available (older Windows), download the latest LTS installer from https://nodejs.org and run it silently:
 ```
-powershell -Command "Start-BitsTransfer -Source 'https://nodejs.org/dist/v22.15.0/node-v22.15.0-x64.msi' -Destination '$env:TEMP\node-install.msi'; Start-Process msiexec -ArgumentList '/i','$env:TEMP\node-install.msi','/quiet','/norestart' -Wait"
+$nodeUrl = (Invoke-WebRequest -Uri "https://nodejs.org/dist/index.json" -UseBasicParsing | ConvertFrom-Json | Where-Object { $_.lts } | Select-Object -First 1).version
+Invoke-WebRequest -Uri "https://nodejs.org/dist/$nodeUrl/node-$nodeUrl-x64.msi" -OutFile "$env:TEMP\node-install.msi"
+Start-Process msiexec -ArgumentList "/i","$env:TEMP\node-install.msi","/quiet","/norestart" -Wait
 ```
 
 **macOS:**
 ```
-curl -fsSL https://nodejs.org/dist/v22.15.0/node-v22.15.0.pkg -o /tmp/node.pkg && sudo installer -pkg /tmp/node.pkg -target /
+brew install node
 ```
+If `brew` is not available, download the latest LTS `.pkg` from https://nodejs.org and install:
+```
+curl -fsSL https://nodejs.org/en/download/ -o /dev/null
+```
+Tell the user: "请前往 https://nodejs.org 下载最新 LTS 版本安装"
 
 If `node` still not found after install, PATH hasn't refreshed — tell user to restart Cola once.
 

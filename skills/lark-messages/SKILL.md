@@ -13,6 +13,8 @@ description: >
 
 Read Feishu group messages via `lark-cli` and summarize them with AI.
 
+**CLI**: `lark-cli` (if not found, trigger `lark-setup` skill)
+
 ## How It Works
 
 ### Step 1: Find the group
@@ -83,7 +85,7 @@ lark-cli im +messages-search --help
 
 ## Responding to messages
 
-Only send messages when the user explicitly asks. Always draft and confirm first.
+**SAFETY: NEVER send a message without explicit user confirmation.** Only send messages when the user explicitly asks. Always draft and confirm first.
 
 ```
 # Send to group
