@@ -76,3 +76,15 @@ If the API response includes a `url` field, use that directly. Example:
 > 2. 修复登录 bug（已逾期）
 >
 > 在飞书中查看：https://xxx.feishu.cn/task/xxx
+
+## Feedback: Report Issues
+
+If a command fails and recovery doesn't work, help the user submit a GitHub Issue. Collect the error output, OS, and lark-cli version, then draft the Issue:
+
+```
+Title: [lark-tasks] <one-line error summary>
+Body: Environment info + error output + steps to reproduce
+```
+
+> 这个问题我暂时无法自动修复，你可以在这里反馈：
+> https://github.com/heran11011/cola-lark-skills/issues/new

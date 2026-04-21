@@ -90,3 +90,15 @@ The user may want to:
 - Apply their own filters
 - Edit data directly
 - Share the link with colleagues
+
+## Feedback: Report Issues
+
+If a command fails and recovery doesn't work, help the user submit a GitHub Issue. Collect the error output, OS, and lark-cli version, then draft the Issue:
+
+```
+Title: [lark-base] <one-line error summary>
+Body: Environment info + error output + steps to reproduce
+```
+
+> 这个问题我暂时无法自动修复，你可以在这里反馈：
+> https://github.com/heran11011/cola-lark-skills/issues/new

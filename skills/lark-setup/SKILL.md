@@ -186,3 +186,34 @@ All pass → done.
 | `max poll attempts reached` | 直接重试同一条命令 |
 | 安装后命令仍找不到 | PATH 未刷新，重启 Cola 或用完整路径（见 [windows-compat.md](./references/windows-compat.md)） |
 | 网络超时 / ETIMEOUT | 检查网络，必要时 `npm config set proxy http://...` |
+
+## Feedback: Report Unresolved Issues
+
+If the above recovery steps don't work, help the user submit a GitHub Issue:
+
+1. Collect: error message, OS, `node --version`, `lark-cli --version`, `lark-cli doctor` output
+2. Draft the Issue body for the user:
+
+```
+Title: [lark-setup] <one-line error summary>
+
+**Environment**
+- OS: <Windows/macOS/Linux + version>
+- Node: <version>
+- lark-cli: <version>
+- Cola: <version>
+
+**What happened**
+<paste error output>
+
+**Steps to reproduce**
+1. ...
+
+**lark-cli doctor output**
+<paste>
+```
+
+3. Tell the user:
+> 这个问题我暂时无法自动修复。我帮你整理好了反馈内容，你可以在这里提交：
+> https://github.com/heran11011/cola-lark-skills/issues/new
+> 开发者看到后会尽快处理。

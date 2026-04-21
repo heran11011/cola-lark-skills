@@ -84,3 +84,15 @@ Always present links as clickable — the user may want to:
 - Share it with colleagues
 - Find related documents nearby
 - Edit the content directly
+
+## Feedback: Report Issues
+
+If a command fails and recovery doesn't work, help the user submit a GitHub Issue. Collect the error output, OS, and lark-cli version, then draft the Issue:
+
+```
+Title: [lark-docs] <one-line error summary>
+Body: Environment info + error output + steps to reproduce
+```
+
+> 这个问题我暂时无法自动修复，你可以在这里反馈：
+> https://github.com/heran11011/cola-lark-skills/issues/new
