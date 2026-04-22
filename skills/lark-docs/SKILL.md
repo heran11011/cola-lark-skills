@@ -87,12 +87,44 @@ Always present links as clickable — the user may want to:
 
 ## Feedback: Report Issues
 
-If a command fails and recovery doesn't work, help the user submit a GitHub Issue. Collect the error output, OS, and lark-cli version, then draft the Issue:
+If a command fails and recovery doesn't work, help the user submit a GitHub Issue.
 
-```
-Title: [lark-docs] <one-line error summary>
-Body: Environment info + error output + steps to reproduce
+### 提交 issue 流程（优先自动提交）
+
+**Step 1: 检查 gh CLI 登录态**
+
+```bash
+gh auth status
 ```
 
-> 这个问题我暂时无法自动修复，你可以在这里反馈：
+**Step 2a: 如果已登录 GitHub → 直接帮用户提 issue**
+
+整理好以下信息，展示给用户确认：
+- 标题：`[lark-docs] <一句话描述问题>`
+- 内容：错误日志、`node --version`、`lark-cli --version`、操作系统、复现步骤
+
+用户确认后，执行：
+
+```bash
+gh issue create --repo heran11011/cola-lark-skills \
+  --title "[lark-docs] 问题标题" \
+  --body "整理好的问题描述"
+```
+
+告诉用户：
+> ✅ 已帮你提交 issue，开发者会收到通知并尽快处理。
+
+**Step 2b: 如果未登录 GitHub → 给链接**
+
+告诉用户：
+> 你的电脑还没有登录 GitHub CLI，我没办法直接帮你提交。
+> 你可以手动在这里提 issue：
 > https://github.com/heran11011/cola-lark-skills/issues/new
+>
+> 或者先登录 GitHub CLI（`gh auth login`），下次我就能直接帮你提交了。
+
+提交 issue 时，引导用户附上：
+- 错误日志（终端输出）
+- Node.js 版本（`node --version`）
+- lark-cli 版本（`lark-cli --version`）
+- 操作系统

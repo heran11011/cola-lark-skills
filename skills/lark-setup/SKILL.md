@@ -192,28 +192,45 @@ All pass → done.
 If the above recovery steps don't work, help the user submit a GitHub Issue:
 
 1. Collect: error message, OS, `node --version`, `lark-cli --version`, `lark-cli doctor` output
-2. Draft the Issue body for the user:
+2. Draft the Issue body for the user
 
-```
-Title: [lark-setup] <one-line error summary>
+### 提交 issue 流程（优先自动提交）
 
-**Environment**
-- OS: <Windows/macOS/Linux + version>
-- Node: <version>
-- lark-cli: <version>
-- Cola: <version>
+**Step 1: 检查 gh CLI 登录态**
 
-**What happened**
-<paste error output>
-
-**Steps to reproduce**
-1. ...
-
-**lark-cli doctor output**
-<paste>
+```bash
+gh auth status
 ```
 
-3. Tell the user:
-> 这个问题我暂时无法自动修复。我帮你整理好了反馈内容，你可以在这里提交：
+**Step 2a: 如果已登录 GitHub → 直接帮用户提 issue**
+
+整理好以下信息，展示给用户确认：
+- 标题：`[lark-setup] <一句话描述问题>`
+- 内容：错误日志、`node --version`、`lark-cli --version`、`lark-cli doctor` 输出、操作系统
+
+用户确认后，执行：
+
+```bash
+gh issue create --repo heran11011/cola-lark-skills \
+  --title "[lark-setup] 问题标题" \
+  --body "整理好的问题描述"
+```
+
+告诉用户：
+> ✅ 已帮你提交 issue，开发者会收到通知并尽快处理。
+
+**Step 2b: 如果未登录 GitHub → 给链接**
+
+告诉用户：
+> 你的电脑还没有登录 GitHub CLI，我没办法直接帮你提交。
+> 你可以手动在这里提 issue：
 > https://github.com/heran11011/cola-lark-skills/issues/new
-> 开发者看到后会尽快处理。
+>
+> 或者先登录 GitHub CLI（`gh auth login`），下次我就能直接帮你提交了。
+
+提交 issue 时，引导用户附上：
+- 错误日志（终端输出）
+- Node.js 版本（`node --version`）
+- lark-cli 版本（`lark-cli --version`）
+- lark-cli doctor 输出（`lark-cli doctor`）
+- 操作系统
