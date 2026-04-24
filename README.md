@@ -179,6 +179,19 @@ Once connected, try:
 
 ---
 
+## ⚠️ 安全提示 / Security Notes
+
+- **OAuth 授权**：连接飞书时会打开浏览器授权页面，请确认 URL 为飞书官方域名（`open.feishu.cn`），不要在非官方页面输入密码
+- **Token 过期**：如果遇到"权限不足"或"token expired"错误，重新执行 `lark-cli auth login --recommend` 即可。可用 `lark-cli auth status` 检查状态
+- **消息发送确认**：所有发送消息的操作都会先让你确认内容，不会自动发送
+- **输入安全**：本技能包通过 shell 命令与 lark-cli 交互，所有用户输入会经过转义处理
+- **OAuth Security**: When connecting Feishu, verify the browser URL is an official domain (`open.feishu.cn`) before entering credentials
+- **Token Expiry**: If you encounter "permission denied" or "token expired" errors, re-run `lark-cli auth login --recommend`. Check status with `lark-cli auth status`
+- **Message Confirmation**: All message-sending operations require your explicit approval before sending
+- **Input Safety**: This skill pack interacts with lark-cli via shell commands; all user inputs are sanitized
+
+---
+
 ## License
 
 MIT

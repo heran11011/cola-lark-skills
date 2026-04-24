@@ -237,3 +237,15 @@ gh issue create --repo heran11011/cola-lark-skills \
 - lark-cli 版本（`lark-cli --version`）
 - lark-cli doctor 输出（`lark-cli doctor`）
 - 操作系统
+
+---
+
+## ⚠️ Security / 安全提示
+
+**OAuth 授权安全：** 执行 `lark-cli auth login` 会在浏览器中打开授权页面。请确认 URL 域名为飞书官方域名（`open.feishu.cn` 或 `accounts.feishu.cn`），不要在非官方页面输入账号密码。
+
+**Token 过期：** lark-cli 的授权 token 有有效期。如果用户反馈"权限不足"、"token expired"、"401"、"99991668"等错误，引导用户重新执行 `lark-cli auth login --recommend` 重新授权。可用 `lark-cli auth status` 检查当前 token 状态。
+
+**临时文件清理：** 授权流程中生成的临时文件（`/tmp/lark-*`）可能包含一次性授权链接，流程完成后建议清理。
+
+**认证信息输出：** 执行 `lark-cli auth status` 验证认证状态时，不要向用户展示完整的 JSON 输出（可能包含 token），只告知认证是否成功。
