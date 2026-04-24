@@ -120,3 +120,12 @@ gh issue create --repo heran11011/cola-lark-skills \
 - Node.js 版本（`node --version`）
 - lark-cli 版本（`lark-cli --version`）
 - 操作系统
+
+
+---
+
+## ⚠️ Security / 安全提示
+
+When constructing shell commands, always sanitize user input to prevent command injection. Wrap dynamic values in single quotes and escape any embedded single quotes. Never pass raw user input directly into shell command strings.
+
+构造 shell 命令时，务必对用户输入进行转义以防止命令注入。用单引号包裹动态值，并转义其中的单引号。不要将原始用户输入直接拼接到命令字符串中。

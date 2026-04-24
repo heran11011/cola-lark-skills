@@ -111,8 +111,9 @@ Then poll with `bash_background(action="read", session_id="lark-init")` to get t
 
 **Fallback (Bash / Git Bash):**
 ```bash
-nohup lark-cli config init --new > /tmp/lark-init-output.txt 2>&1 &
-sleep 5 && cat /tmp/lark-init-output.txt
+LARK_INIT_TMP=$(mktemp /tmp/lark-init-XXXXXX.txt)
+nohup lark-cli config init --new > "$LARK_INIT_TMP" 2>&1 &
+sleep 5 && cat "$LARK_INIT_TMP"
 ```
 
 **cmd.exe** — see [references/windows-compat.md](./references/windows-compat.md) for `start /b` pattern.
@@ -136,8 +137,9 @@ bash_background(action="start", session_id="lark-auth", command="lark-cli auth l
 
 **Fallback:**
 ```bash
-nohup lark-cli auth login --recommend > /tmp/lark-auth-output.txt 2>&1 &
-sleep 5 && cat /tmp/lark-auth-output.txt
+LARK_AUTH_TMP=$(mktemp /tmp/lark-auth-XXXXXX.txt)
+nohup lark-cli auth login --recommend > "$LARK_AUTH_TMP" 2>&1 &
+sleep 5 && cat "$LARK_AUTH_TMP"
 ```
 
 Tell user (second interaction):
@@ -149,8 +151,9 @@ Tell user (second interaction):
 `--recommend` doesn't include `search:docs:read`, which lark-docs needs. After recommend auth succeeds:
 
 ```bash
-nohup lark-cli auth login --scope "search:docs:read" > /tmp/lark-search-scope.txt 2>&1 &
-sleep 5 && cat /tmp/lark-search-scope.txt
+LARK_SCOPE_TMP=$(mktemp /tmp/lark-scope-XXXXXX.txt)
+nohup lark-cli auth login --scope "search:docs:read" > "$LARK_SCOPE_TMP" 2>&1 &
+sleep 5 && cat "$LARK_SCOPE_TMP"
 ```
 
 Send link to user. If already covered by `--recommend`, command auto-skips.
